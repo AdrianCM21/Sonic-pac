@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>Sonic-pac</title>
+		<!-- <link href="pacJonStyle.css" rel="stylesheet" type="text/css"> -->
+
+		<style>
+			
+			body {
+				background-color: #8ecdef;
+			}
+
+			button {
+				width: 320px;
+				height: 45px;
+				border-radius: 0.15em;
+				font-size: 24px;
+				font-weight: 700;
+				color: #FFFFEE; 
+				background-color: #155799;
+				box-shadow: inset 0 -0.5em 0 -0.35em rgba(0, 0, 0, 0.17);
+				text-align: center;
+				position: relative;
+			}
+
+			button:active {
+				top: 0.1em;
+			}
+
+			.botonControles {
+				width: 104px;
+				height: 50px;
+				border-radius: 0.15em;
+				font-size: 24px;
+				font-weight: 700;
+				color:#fff;
+				background-color: #155799;
+				box-shadow: inset 0 -0.5em 0 -0.35em rgba(0, 0, 0, 0.17);
+				text-align: center;
+				position: relative;
+			}
+
+			.botonControles:active {
+				top: 0.1em;
+			}
+			.canvas{
+				max-height:'720px';
+				min-width:'240px';
+				margin:'auto'
+			}
+
+		</style>
+		
+	</head>
+
+	<body onload='inicializa();'>
+		<div style="
+		display: flex;
+		justify-content: center;
+	">
+
+		
+		<div >
+
+		
+		<button class="botonInicio" id="NewGame">Jugar Nueva Partida</button>
+		<br/>
+
+		<canvas id="canvas" style="border:2px solid black"></canvas>
+		<br/>
+
+		<button class="botonControles" id="le">&#x2190</button>
+		<button class="botonControles" id="up">&#x2191</button>
+		<button class="botonControles" id="ri">&#x2192</button>
+		<br/>
+		<button class="botonControles" id="fpsdo">Modo</button>
+		<button class="botonControles" id="do">&#x2193</button>
+		<button class="botonControles" id="fpsup">Inicio</button>
+	</div>
+</div>
+
+		<!-- <script type="text/javascript" src="pacJonjs.js" async></script> -->
+
+		<script>
+			// ----------------------------------------------------------------------------
+			// ---  P A C - J O N   (Pocket)     By Juan Eguia
+			// ---------------------------------------------------------------------------- 
+			const BSX = 20;
+			const BSY = 26;
+			const NRO_FILAS = 15;
+			const NRO_COLUMNAS = 16;
+			const NRO_FANTASMAS = 4;
+
+			const resolucion = [BSX * NRO_COLUMNAS, BSY * NRO_FILAS];
+			const FPS = 30;
+
+			var contadorFPS = 0;
+			var updateConteoFPS = 0;
+			var cambiarFPS = 30;
+
+			// -------------------------------- ARRAYS & OBJETOS ---------------------
+			var array_laberinto = [
+			    [9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9],
+			    [9,5,1,1,1,1,1,1,1,9,1,1,1,1,5,9],
+			    [9,1,9,9,1,9,9,9,1,9,1,9,9,9,1,9],
+
+			    [9,1,9,9,1,9,9,9,1,9,1,9,9,9,1,9],
+			    [9,1,1,1,1,1,1,1,1,0,1,1,1,1,1,9],
+			    [9,1,9,9,1,9,1,9,9,9,9,9,1,9,1,9],
+
+			    [9,1,1,1,1,9,1,1,1,9,1,1,1,9,1,9],
+			    [9,9,9,9,1,9,9,9,1,9,1,9,9,9,1,9],
+			    [9,1,1,1,1,1,1,1,1,1,1,1,1,1,1,9],
+
+			    [9,1,9,9,1,9,1,9,1,9,1,9,1,9,1,9],
+			    [9,1,9,9,1,9,1,9,1,9,1,9,1,9,1,9],
+			    [0,1,1,1,1,9,1,1,1,1,1,1,1,9,1,0],
+
+			    [9,1,9,9,1,9,1,9,9,9,9,9,1,9,1,9],
+			    [9,5,1,1,2,1,1,1,1,1,1,1,1,1,5,9],
+			    [9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9]
+			];
+
+			var laberinto;
+
+			var pacman;
+			var fantasma = [];
+
+			var puntito = [];
+			var array_puntitos = [];
+
+			var ptoGordo = [];
+			var array_ptosGordos = [];
+
+			var fruta;
+			var momentoActual = -1;
+
+			// ------------------------------------------------------------------------------
+			var puntos = 0;
+			var nivel = 1;
+			var vidas = 3;
+
+			var gameover = false;
+			var nivel_superado = false;
+
+			var contPuntitosComidos = 0;
+			var animaPacMan = true;
+
+			var fantasmasAzules = false;
+			var duracionAzules = 8000;
+			var ptosComeFantasmas = 100;
+			var ptosComeFruta = 200;
+
+			// ------------------------- Colores -------------------------------------------
+			var paredColor = '#9D9D62';
+			var paredColorOscuro = '#808052';
+			var sueloColor = '#fff';
+
+			// =============================================================================
+			// ---                        CONTROL mediante TECLADO
+			// -----------------------------------------------------------------------------
+			document.addEventListener('keydown', function(tecla) {
+			    
+			    switch(tecla.keyCode){
+			        case 38:
+			            pacman.arriba();
+			        break;
+			        
+			        case 40:
+			            pacman.abajo();
+			        break;
+			        
+			        case 39:
+			            pacman.derecha();
+			        break;
+			        
+			        case 37:
+			            pacman.izquierda();
+			        break;
+
+			        case 89:
+			            reescalaCanvas();
+					case 13:
+					if(momentoActual===-1){
+					momentoActual = 0,sueloColor = '#484848'
+				}
+					
+			        break;
+			    }
+			});
+
+			// ----------------------------------------------------------------------------
+			// ---                        CONTROL mediante BOTONES
+			// ----------------------------------------------------------------------------
+			document.addEventListener('click', function(event) {
+
+			    if (event.target.id == 'le') {pacman.izquierda();}
+
+			    if (event.target.id == 'ri') {pacman.derecha();}
+
+			    if (event.target.id == 'up') {pacman.arriba();}
+
+			    if (event.target.id == 'do') {pacman.abajo();}
+
+			    if (event.target.id == 'fpsup') {
+					if(momentoActual===-1){
+					momentoActual = 0,sueloColor = '#484848'
+				}}
+
+			    if (event.target.id == 'fpsdo') {bajarFPS();}
+
+			    if (event.target.id == 'NewGame') {nuevaPartida();}
+			});
+
+			// ============================================================================
+			class Level {   
+			    constructor(array) {
+			        this.array = array;
+			        
+			        //DIMENSIONES MATRIZ
+			        this.altoM  = this.array.length;
+			        this.anchoM = this.array[0].length;
+			        
+			        //TAMAÑO DE LOS TILES
+			        this.anchoT = BSX;
+			        this.altoT = BSY;
+			    }
+			    
+			    colision(x, y) {
+			        if (this.array[y][x] == 9) {return true;} else {return false;}     
+			    }
+			    
+			    tile(x, y) {
+			        var casillaX = parseInt(x / this.anchoT);       
+			        var casillaY = parseInt(y / this.altoT);
+
+			        return(this.array[casillaY][casillaX]);
+			    }
+			    
+			    dibuja() {
+			        for(var y = 0; y < this.altoM; y ++){
+			            for(var x = 0; x < this.anchoM; x ++){
+			                
+			                if (this.array[y][x] == 9) {
+			                    var bx = x * this.anchoT + 1;
+			                    var by = y * this.altoT + 1;
+
+			                    ctx.fillStyle = paredColor;
+			                    ctx.fillRect(bx, by, this.anchoT - 1, this.altoT - 1);
+			                    ctx.fillStyle = paredColorOscuro;
+			                    ctx.fillRect(bx + 2, by + 2, this.anchoT - 4, this.altoT - 4);
+			                    // ctx.drawImage(this.img, 0, 0, this.img.width - 1, this.img.height - 1, 
+			                    //     x * this.anchoT, y * this.altoT, this.anchoT, this.altoT);
+			                }         
+			            }
+			        }
+			    }
+			}
+
+			// ============================================================================
+			class Puntitos {   
+			    constructor(x, y) {
+			        this.x = x * BSX + parseInt(BSX / 2);
+			        this.y = y * BSY + parseInt(BSY / 2);
+
+			        this.radio = 2;
+			        this.ancho = this.radio * 2;
+			        this.alto = this.radio * 2;
+
+			        this.color = 'white';
+			        this.visible = true;
+			        this.sumaPtos = 10;
+
+			        this.dibuja();
+			    }
+
+			    dibuja() {
+			        ctx.beginPath();
+			        ctx.arc(this.x , this.y , this.radio, 0, Math.PI * 2);
+			        ctx.fillStyle = this.color;
+			        ctx.fill();
+			        ctx.closePath();
+			    }
+			}
+
+			// ============================================================================
+			class PtosGordos {   
+			    constructor(x, y) {
+			        this.x = x * BSX + parseInt(BSX / 2);
+			        this.y = y * BSY + parseInt(BSY / 2);
+
+			        this.radio = 5;
+			        this.ancho = this.radio * 2;
+			        this.alto = this.radio * 2;
+
+			        this.color = 'white';
+			        this.visible = true;
+			        this.sumaPtos = 50;
+
+			        this.dibuja();
+			    }
+
+			    dibuja() {
+			        ctx.beginPath();
+			        ctx.arc(this.x , this.y , this.radio, 0, Math.PI * 2);
+			        ctx.fillStyle = this.color;
+			        ctx.fill();
+			        ctx.closePath();
+			    }
+			}
+
+			// ============================================================================
+			class Fruta {
+			    constructor() {
+			        this.x = 9 * BSX;
+			        this.y = 11 * BSY;
+
+			        this.direccion = 0;
+
+			        this.ancho = BSX;
+			        this.alto = BSY;
+			        this.radio = parseInt(BSX / 2);
+
+			        this.color = 'red';
+
+			        this.comido = false;
+			        this.showPtos = false;
+			        this.showX = 0;
+			        this.showY = 0;
+
+			        // Orden array: Left, right, up, down
+			        this.hacia_donde = [
+			            '231',
+			            '230',
+			            '013',
+			            '012'
+			        ];
+
+			        this.hacia_donde_velXY = [
+			            [-1, 0, 0, 0, 7, 12],
+			            [1, 0, 1, 0, 1, 6],
+			            [0, -1, 0, 0, 13, 18],
+			            [0, 1, 0, 1, 7, 12]
+			        ];
+
+			        this.ptosClave = [
+			            [4, 1], [14, 1],
+			            [4, 4], [6, 4], [12, 4], [14, 4],
+			            [4, 8], [6, 8], [12, 8], [14, 8],
+			            [1, 11], [4, 11], [6, 11], [12, 11], [14, 11], [17, 11],
+			            [4, 13], [6, 13], [12, 13], [14, 13]
+			        ];
+
+			        this.velX = 1;
+			        this.velY = 0;
+			        this.sumarAncho = 1;
+			        this.sumarAlto = 0;
+			    }
+
+			    actualiza() {
+			        var x = 0;
+			        var y = 0;
+
+			        for (let i = 0; i < this.ptosClave.length; i ++) {
+			            var pClaveX = this.ptosClave[i][0] * BSX;
+			            var pClaveY = this.ptosClave[i][1] * BSY;
+
+			            if (this.x == pClaveX && this.y == pClaveY) {
+			                var otraDir = Math.floor(Math.random()*10);
+
+			                if (otraDir < 5) {
+			                    this.elegir_otra_direccion();
+			                    this.nuevos_valores();
+			                }
+			            }
+			        }
+
+			        x = parseInt((this.x + this.velX + this.ancho * this.sumarAncho) / BSX);
+			        y = parseInt((this.y + this.velY + this.alto * this.sumarAlto) / BSY);
+
+			        if (!(laberinto.colision(x, y))) {
+			            this.x += this.velX * 2;
+			            this.y += this.velY * 2;
+
+			            if (this.x > NRO_COLUMNAS * BSX && this.velX > 0) this.x = -BSX;
+			            if (this.x < -BSX && this.velX < 0) this.x = NRO_COLUMNAS * BSX;
+
+			        } else {
+			            this.elegir_otra_direccion();
+			            this.nuevos_valores();
+			        }
+			    }
+
+			    dibuja() {
+			        if (momentoActual == 1)  this.actualiza();
+
+			        if (!this.comido) canvasFruta(this.x, this.y, this.radio);
+			    }
+
+			    elegir_otra_direccion() {
+			        var direcc = this.hacia_donde[this.direccion];
+			        var num_rnd = Math.floor(Math.random()*3);
+			        var nuevaDireccion = direcc.charAt(num_rnd);
+
+			        this.direccion = parseInt(nuevaDireccion);
+			    }
+
+			    nuevos_valores() {
+			        this.velX = this.hacia_donde_velXY[this.direccion][0];
+			        this.velY = this.hacia_donde_velXY[this.direccion][1];
+			        this.sumarAncho = this.hacia_donde_velXY[this.direccion][2];
+			        this.sumarAlto = this.hacia_donde_velXY[this.direccion][3];
+			    }
+			}
+
+			// ============================================================================
+			class PacMan {
+			    constructor() {
+			        this.x = 9 * BSX;
+			        this.y = 4 * BSY;
+
+			        this.ancho = BSX;
+			        this.alto = BSY;
+			        this.radio = parseInt(BSX / 2);
+
+			        this.color = '#155799';
+
+			        this.direccion = {
+			            ri : [1, 0, 1, 0, 1, 6],
+			            le : [-1, 0, 0, 0, 7, 12],
+			            up : [0, -1, 0, 0, 13, 18],
+			            do : [0, 1, 0, 1, 19, 24]
+			        }
+
+			        this.pulsada = 'ri';
+			        this.orientacion = this.pulsada;
+			        this.diesAnima = 0;
+
+			        this.velX = 1;
+			        this.velY = 0;
+			        this.sumarAncho = 1;
+			        this.sumarAlto = 0;
+			    }
+
+			    actualiza() {
+			        var x = 0;
+			        var y = 0;
+
+			        if (this.x % BSX == 0 && this.y % BSY == 0) {
+
+			            x = parseInt(this.x / BSX) + this.direccion[this.pulsada][0];
+			            y = parseInt(this.y / BSY) + this.direccion[this.pulsada][1];
+
+			            if (!(laberinto.colision(x, y))) {
+			                this.velX = this.direccion[this.pulsada][0];
+			                this.velY = this.direccion[this.pulsada][1];
+			                this.sumarAncho = this.direccion[this.pulsada][2];
+			                this.sumarAlto = this.direccion[this.pulsada][3];
+			                this.orientacion = this.pulsada;
+			            }
+			        }
+
+			        x = parseInt((this.x + this.velX + this.ancho * this.sumarAncho) / BSX);
+			        y = parseInt((this.y + this.velY + this.alto * this.sumarAlto) / BSY);
+
+			        if (!(laberinto.colision(x, y))) {
+			            this.x += this.velX * 2;
+			            this.y += this.velY * 2;
+
+			            if (this.x > NRO_COLUMNAS * BSX && this.velX > 0) this.x = -BSX;
+			            if (this.x < -BSX && this.velX < 0) this.x = NRO_COLUMNAS * BSX;
+			        }
+			    }
+
+			    dibuja() {
+
+			        if (momentoActual == 2) {
+			            this.pacManDies();
+			            return;
+			        }
+
+			        if (momentoActual == 1) this.actualiza();
+
+			        canvasPacMan(this.x, this.y, this.radio, this.color);
+
+			        if (this.velX == 1) {
+			            canvasPacManRi(this.x, this.y, this.radio, this.color, animaPacMan);
+			        } else if (this.velX == -1) {
+			            canvasPacManLe(this.x, this.y, this.radio, this.color, animaPacMan);
+			        } else if (this.velY == 1) {
+			            canvasPacManDo(this.x, this.y, this.radio, this.color, animaPacMan);
+			        } else if (this.velY == -1) {
+			            canvasPacManUp(this.x, this.y, this.radio, this.color, animaPacMan);
+			        }
+
+			        // ctx.drawImage(pacmanImg, 0, 0, pacmanImg.width - 1, pacmanImg.height - 1, 
+			        //     this.x, this.y, this.ancho, this.alto);
+			    }
+
+			    pacManDies() {
+			        canvasPacMan(this.x, this.y, this.radio, this.color);
+
+			        if (this.diesAnima == 0) {
+			            canvasPacManRi(this.x, this.y, this.radio, this.color, animaPacMan);
+			        } else if (this.diesAnima == 2) {
+			            canvasPacManLe(this.x, this.y, this.radio, this.color, animaPacMan);
+			        } else if (this.diesAnima == 1) {
+			            canvasPacManDo(this.x, this.y, this.radio, this.color, animaPacMan);
+			        } else if (this.diesAnima == 3) {
+			            canvasPacManUp(this.x, this.y, this.radio, this.color, animaPacMan);
+			        }
+			    }
+
+			    revivirPacMan() {
+			        this.x = 9 * BSX;
+			        this.y = 4 * BSY;
+			        this.pulsada = 'ri';
+			        this.velX = 1;
+			        this.velY = 0;
+			        this.sumarAncho = 1;
+			        this.sumarAlto = 0;
+			    }
+
+			    // --------------- Leer Teclado ---------------
+			    arriba() {this.pulsada = 'up';}
+
+			    abajo() {this.pulsada = 'do';}
+
+			    izquierda() {this.pulsada = 'le';}
+
+			    derecha() {this.pulsada = 'ri';}
+			}
+
+			// =======================================================================
+			class Fantasma {
+			    constructor(x, y, tipoFantasma, direccion) {
+			        this.tipoF = tipoFantasma;
+			        this.direccion = direccion;
+
+			        this.ancho = BSX;
+			        this.alto = BSY;
+			        this.radio = parseInt(BSX / 2);
+
+			        this.listaColores = [
+			            'pink', 'red', 'orange', 'seagreen'
+			        ];
+
+			        this.color = this.listaColores[this.tipoF];
+
+			        this.comido = false;
+			        this.showPtos = false;
+			        this.showX = 0;
+			        this.showY = 0;
+			        this.showx2 = 0;
+
+			        // Orden array: Left, right, up, down
+			        this.hacia_donde = [
+			            '231',
+			            '230',
+			            '013',
+			            '012'
+			        ];
+
+			        this.hacia_donde_velXY = [
+			            [-1, 0, 0, 0, 7, 12],
+			            [1, 0, 1, 0, 1, 6],
+			            [0, -1, 0, 0, 13, 18],
+			            [0, 1, 0, 1, 7, 12]
+			        ];
+
+			        this.ptosClave = [
+			            [4, 1], [14, 1],
+			            [4, 4], [6, 4], [12, 4], [14, 4],
+			            [4, 8], [6, 8], [12, 8], [14, 8],
+			            [1, 11], [4, 11], [6, 11], [12, 11], [14, 11], [17, 11],
+			            [4, 13], [6, 13], [12, 13], [14, 13]
+			        ];
+
+			        this.x = x;
+			        this.y = y;
+
+			        this.velX = this.hacia_donde_velXY[this.direccion][0];
+			        this.velY = this.hacia_donde_velXY[this.direccion][1];
+			        this.sumarAncho = this.hacia_donde_velXY[this.direccion][2];
+			        this.sumarAlto = this.hacia_donde_velXY[this.direccion][3];
+			    }
+
+			    actualiza() {
+			        var x = 0;
+			        var y = 0;
+
+			        for (let i = 0; i < this.ptosClave.length; i ++) {
+			            var pClaveX = this.ptosClave[i][0] * BSX;
+			            var pClaveY = this.ptosClave[i][1] * BSY;
+
+			            if (this.x == pClaveX && this.y == pClaveY) {
+			                var perseguir = Math.floor(Math.random()*10);
+
+			                if (perseguir < 7 + nivel) {
+			                    this.fantasma_persigue();
+			                    this.nuevos_valores();
+			                }
+			            }
+			        }
+
+			        x = parseInt((this.x + this.velX + this.ancho * this.sumarAncho) / BSX);
+			        y = parseInt((this.y + this.velY + this.alto * this.sumarAlto) / BSY);
+
+			        if (!(laberinto.colision(x, y))) {
+			            this.x += this.velX * 2;
+			            this.y += this.velY * 2;
+
+			            if (this.x > NRO_COLUMNAS * BSX && this.velX > 0) this.x = -BSX;
+			            if (this.x < -BSX && this.velX < 0) this.x = NRO_COLUMNAS * BSX;
+
+			        } else {
+
+			            var perseguir = Math.floor(Math.random()*10);
+
+			            if (perseguir < 5 + nivel) {
+			                this.fantasma_persigue();
+			            } else {
+			                this.elegir_otra_direccion();
+			            }
+
+			            this.nuevos_valores();
+			        }
+			    }
+
+			    dibuja() {
+
+			        let iz = 0;
+			        let de = 0;
+			        let vert = 0;
+
+			        if (momentoActual == 1) this.actualiza();
+
+			        canvasFantasma(this.x, this.y, this.radio, this.color, this.comido);
+
+			        if (this.velX == 1) {
+			            iz = 3;
+			            de = 5;
+			            vert = 0;
+			        } else if (this.velX == -1) {
+			            iz = 8;
+			            de = 1;
+			            vert = 0;
+			        } else if (this.velY == -1) {
+			            iz = 5;
+			            de = 3;
+			            vert = -2;
+			        } else if (this.velY == 1) {
+			            iz = 5;
+			            de = 3;
+			            vert = 2;
+			        }
+
+			        canvasOjosFantasma(this.x, this.y, this.radio, iz, de, vert);
+
+			        // ctx.drawImage(fantasma, 0, 0, fantasma.width -1, fantasma.height - 1, 
+			        //     this.x, this.y, this.ancho, this.alto);
+			    }
+
+			    elegir_otra_direccion() {
+			        var direcc = this.hacia_donde[this.direccion];
+			        var num_rnd = Math.floor(Math.random()*3);
+			        var nuevaDireccion = direcc.charAt(num_rnd);
+
+			        this.direccion = parseInt(nuevaDireccion);
+			    }
+
+			    nuevos_valores() {
+			        this.velX = this.hacia_donde_velXY[this.direccion][0];
+			        this.velY = this.hacia_donde_velXY[this.direccion][1];
+			        this.sumarAncho = this.hacia_donde_velXY[this.direccion][2];
+			        this.sumarAlto = this.hacia_donde_velXY[this.direccion][3];
+			    }
+
+			    fantasma_persigue() {
+			        var hor_ver = Math.floor(Math.random()*10);
+
+			        if (hor_ver < 5) {
+			            if (this.y < pacman.y) {
+			                this.direccion = 3;
+			            } else {
+			                this.direccion = 2;
+			            }
+
+			        } else {
+			            if (this.x < pacman.x) {
+			                this.direccion = 1;
+			            } else {
+			                this.direccion = 0;
+			            }
+			        }
+			    }
+
+			    revivirFantasmas(x, y, tipoFantasma, direccion) {
+			        this.tipoF = tipoFantasma;
+			        this.direccion = direccion;
+
+			        this.x = x * BSX;
+			        this.y = y * BSY;
+
+			        this.velX = this.hacia_donde_velXY[this.direccion][0];
+			        this.velY = this.hacia_donde_velXY[this.direccion][1];
+			        this.sumarAncho = this.hacia_donde_velXY[this.direccion][2];
+			        this.sumarAlto = this.hacia_donde_velXY[this.direccion][3];
+			    }
+			}
+
+			// =======================================================================
+			function dibujarFantasmas() {
+			    for (let i = 0; i < NRO_FANTASMAS; i ++) {
+			        let corr = 4;
+
+			        if (checkColision(fantasma[i], pacman, corr) && momentoActual == 1) {
+
+			            if (!fantasmasAzules) {
+			                momentoActual = 2;  // Secuencia PacMan Dies...
+			                fantasmasAzules = false;
+			                ptosComeFantasmas = 100;
+			                vidas --;
+
+			                if (vidas >= 0) {
+			                    setTimeout(() => {
+			                        momentoActual = 1;
+			                        pacman.revivirPacMan();
+
+			                        fantasma[0].revivirFantasmas(3, 8, 0, 0);
+			                        fantasma[1].revivirFantasmas(5, 8, 1, 0);
+			                        fantasma[2].revivirFantasmas(9, 8, 2, 1);
+			                        fantasma[3].revivirFantasmas(11, 8, 3, 1);
+			                    }, 3000);
+
+			                } else {
+			                    momentoActual = 4;  // Game Over
+			                    gameover = true;
+			                }
+
+			            } else {
+			                //console.log('azules');
+			                if (!fantasma[i].comido) {
+			                    fantasma[i].comido = true;
+			                    fantasma[i].showPtos = true;
+			                    fantasma[i].showX = fantasma[i].x 
+			                    fantasma[i].showY = fantasma[i].y
+
+			                    ptosComeFantasmas *= 2;
+			                    puntos += ptosComeFantasmas;
+			                    fantasma[i].showx2 = ptosComeFantasmas;
+
+			                    setTimeout(() => {
+			                        fantasma[i].showPtos = false;
+			                    }, 2000);
+
+			                }
+			            }
+			        }
+
+			        fantasma[i].dibuja();
+			    }
+			}
+
+			function dibujaTodosPuntitos() {
+			    for (let i = 0; i < array_puntitos.length; i ++) {
+			        let corr = 0;
+
+			        if (puntito[i].visible && momentoActual != 3) {
+			            if (checkColision(puntito[i], pacman, corr)) {
+			                puntito[i].visible = false;
+			                contPuntitosComidos ++;
+			                puntos += puntito[i].sumaPtos
+			            }
+
+			            puntito[i].dibuja();
+			        }
+
+			        if (i < 4) {
+			            if (ptoGordo[i].visible && momentoActual != 3) {
+
+			                if (checkColision(ptoGordo[i], pacman, corr)) {
+			                    ptoGordo[i].visible = false;
+			                    contPuntitosComidos ++;
+			                    puntos += ptoGordo[i].sumaPtos
+			                    fantasmasAzules = true;
+
+			                    setTimeout(() => {
+			                        fantasmasAzules = false;
+			                        ptosComeFantasmas = 100;
+
+			                        fantasma.forEach(fant => {
+			                            fant.comido = false;
+			                        });
+
+			                    }, duracionAzules);
+			                }
+
+			                ptoGordo[i].dibuja();
+			            }
+			        }
+			    }
+			}
+
+			function checkComerFruta() {
+			    let corr = 2;
+
+			    if (checkColision(fruta, pacman, corr) && momentoActual == 1 && !fruta.comido) {
+			        fruta.comido = true;
+			        fruta.showPtos = true;
+			        fruta.showX = fruta.x 
+			        fruta.showY = fruta.y
+
+			        puntos += ptosComeFruta;
+
+			        setTimeout(() => {
+			            fruta.showPtos = false;
+			        }, 3000);
+			    }
+			}
+
+			function checkColision(obj1, obj2, corr) {
+			    return obj1.x + corr < obj2.x + obj2.ancho - corr && 
+			            obj1.x + obj1.ancho - corr > obj2.x + corr &&
+			            obj1.y + corr < obj2.y + obj2.alto - corr && 
+			            obj1.y + obj1.alto - corr > obj2.y + corr;
+			}
+
+			function comprobarNivelSuperado() {
+			    let puntitosMasGordos = array_puntitos.length + array_ptosGordos.length;
+
+			    if (contPuntitosComidos >= puntitosMasGordos) {
+			        return true;
+			    } else {
+			        return false;
+			    }
+			}
+
+			function nuevaPartida() {
+			    if (gameover || momentoActual == 0) location.reload();
+			}
+
+			function elGameOver() {
+			    if (!gameover) return;
+
+			    ctx.font = '60px seriff';
+			    ctx.fillStyle = 'yellow';
+			    ctx.fillText('Game Over', parseInt(resolucion[0] / 12) + 5, 
+			        parseInt(resolucion[1] / 2));
+			}
+
+			function elNivelSuperado() {
+			    if (!nivel_superado) return;
+
+			    nivel ++;
+			    ptosComeFruta *= 2;
+			    fruta.comido = false;
+			    duracionAzules -= nivel * 1000;
+			    nivel_superado = false;
+			    contPuntitosComidos = 0;
+			    momentoActual = 3;
+
+			    if (duracionAzules < 2000) duracionAzules = 2000;
+
+			    puntito.forEach(punto => {
+			        punto.visible = true;
+			    });
+
+			    ptoGordo.forEach(gordo => {
+			        gordo.visible = true;
+			    });
+
+			    setTimeout(() => {
+			        momentoActual = 1;
+			        pacman.revivirPacMan();
+
+			        fantasma[0].revivirFantasmas(3, 8, 0, 0);
+			        fantasma[1].revivirFantasmas(5, 8, 1, 0);
+			        fantasma[2].revivirFantasmas(9, 8, 2, 1);
+			        fantasma[3].revivirFantasmas(11, 8, 3, 1);
+			    }, 5000);
+			}
+
+			// ============================================================================
+			// ---  Funcion INICIALIZA() (la llamamos desde html)
+			// ----------------------------------------------------------------------------
+			function inicializa() {
+			    canvas = document.getElementById('canvas');
+			    ctx = canvas.getContext('2d');
+			    canvas.width = resolucion[0];
+			    canvas.height = resolucion[1];
+
+			    // INSTANCIAR (Laberinto) ----------------------------------------
+			    laberinto = new Level(array_laberinto);
+
+			    // INSTANCIAR TODOS los Puntitos ---------------------------------
+			    let contador = 0;
+			    let contador_gordos = 0;
+
+			    for (let y = 0; y < array_laberinto.length; y ++) {
+			        for (let x = 0; x < array_laberinto[0].length; x ++) {
+			            
+			            if (array_laberinto[y][x] == 1) {
+			                puntito[contador] = new Puntitos(x, y);
+			                array_puntitos.push(puntito);
+			                contador ++;
+			                //console.log(array_puntitos.length);
+			            }
+
+			            if (array_laberinto[y][x] == 5) {
+			                ptoGordo[contador_gordos] = new PtosGordos(x, y);
+			                array_ptosGordos.push(ptoGordo);
+			                contador_gordos ++;
+			            }        
+			        }
+			    }
+
+			    // INSTANCIAR FRUTA ----------------------------------------------
+			    fruta = new Fruta();
+
+			    // INSTANCIAR PAC-MAN --------------------------------------------
+			    pacman = new PacMan();
+
+			    // INSTANCIAR (FANTASMAS) ----------------------------------------
+			    fantasma[0] = new Fantasma(3 * BSX, 8 * BSY, 0, 0);
+			    fantasma[1] = new Fantasma(5 * BSX, 8 * BSY, 1, 0);
+			    fantasma[2] = new Fantasma(9 * BSX, 8 * BSY, 2, 1);
+			    fantasma[3] = new Fantasma(11 * BSX, 8 * BSY, 3, 1);
+
+			    // ***************************************************************
+			    let chooseFPS = '30';
+
+			    // while (parseInt(chooseFPS) < 20 || parseInt(chooseFPS) > 120) {
+			    //     chooseFPS = prompt('Introduce velocidad FPS (recomendado 30):');
+			    // }
+
+			    // --- Ejecutamos BUCLE PRINCIPAL (Intervalo cada 1000/FPS) ------
+			    setInterval(function() {
+			        bucle_principal();
+			    }, 1000 / parseInt(chooseFPS));
+
+			    setTimeout(() => {
+			        if (momentoActual == 0) momentoActual = 1;
+			    }, 5000);
+
+			    setInterval(function() {
+			        if (animaPacMan) {animaPacMan = false;} else {animaPacMan = true;}
+
+			        pacman.diesAnima ++;
+			        if (pacman.diesAnima > 3) pacman.diesAnima = 0;
+			        
+			    }, 150);
+
+			    setInterval(function () {
+			        nivel_superado = comprobarNivelSuperado();
+			        console.log(nivel_superado);
+			        console.log(duracionAzules);
+			    }, 900);
+
+			    setInterval(() => {
+			        //console.log('FPS:', contadorFPS);
+			        updateConteoFPS = contadorFPS;
+			        contadorFPS = 0;
+			    }, 1000);
+			}
+
+			// -----------------------------------------------------------------------
+			function mostrarMarcadores() {
+			    ctx.font = '14px seriff';
+			    ctx.fillStyle = 'yellow';
+			    ctx.fillText('Puntos: ' + puntos.toString(), 22, 15);
+
+			    ctx.fillStyle = 'yellow';
+			    ctx.fillText('Nivel: ' + nivel.toString(), 122, 15);
+
+			    ctx.fillStyle = 'yellow';
+			    let mv = vidas;
+
+			    if (mv < 0) mv = 0;
+			    ctx.fillText('Vidas: ' + mv.toString(), 202, 15);
+
+			    if (momentoActual == 0) {
+			        ctx.fillStyle = sueloColor;
+			        ctx.fillRect(20, resolucion[1] / 2 - 40, resolucion[0] - 40, 55);
+
+			        ctx.font = '60px seriff';
+			        ctx.fillStyle = 'lightgreen';
+			        ctx.fillText('Preparado!', parseInt(resolucion[0] / 12) + 5, 
+			            parseInt(resolucion[1] / 2));
+			    }
+
+			    if (momentoActual == 3) {
+			        ctx.font = '40px seriff';
+			        ctx.fillStyle = 'yellow';
+			        ctx.fillText('Nivel Superado!', parseInt(resolucion[0] / 12) + 5, 
+			            parseInt(resolucion[1] / 2));
+			    }
+
+			    fantasma.forEach(fant => {
+			        if (fant.showPtos) {
+			            ctx.font = '18px seriff';
+			            ctx.fillStyle = 'white';
+			            ctx.fillText(fant.showx2, fant.showX, fant.showY);
+			        }
+			    });
+
+			    if (fruta.showPtos) {
+			        ctx.font = '18px seriff';
+			        ctx.fillStyle = 'lightgreen';
+			        ctx.fillText(ptosComeFruta, fruta.showX, fruta.showY);
+			    }
+			}
+
+			function reescalaCanvas() {
+			    return;
+			}
+
+			function subirFPS() {
+			    if (cambiarFPS <= 120) cambiarFPS += 10;
+			}
+
+			function bajarFPS() {
+			    if (cambiarFPS >= 20) cambiarFPS -= 10;
+			}
+
+			function borraCanvas() {
+			    // canvas.width = canvas.width;
+			    // canvas.height = canvas.height;
+			    ctx.fillStyle = sueloColor;
+			    ctx.fillRect(0, 0, canvas.width, canvas.height);
+			}
+			function laPresentacion() {
+				const image = new Image(60, 45);
+				image.src = "abajo.npg";
+				ctx.drawImage(image,0,0)
+				ctx.font = '50px seriff';
+				ctx.fillStyle = '#155799';
+				ctx.fillText('CyT-Sonic-Pac', parseInt(resolucion[0] / 30) + 1, 
+					parseInt(resolucion[1] / 2));
+
+				ctx.font = '20px seriff';
+				ctx.fillStyle = '#155799';
+				ctx.fillText('Pulse INICIO para comenzar...', parseInt(resolucion[0] / 10) + 0.5, 
+					resolucion[1] - 50);
+
+				pacman.secuenciaPresentacion();
+				fantasma[1].secuenciaPresentacion();
+			}
+
+
+			// ========================================================================
+			function bucle_principal() {
+				borraCanvas();
+				if (momentoActual == -1) laPresentacion();
+				
+				if (momentoActual != -1) {
+			    laberinto.dibuja();
+			    dibujaTodosPuntitos();
+			    fruta.dibuja();
+			    pacman.dibuja();
+			    dibujarFantasmas();
+
+			    checkComerFruta();
+			    elNivelSuperado();
+			    elGameOver();
+			    mostrarMarcadores();
+			    mostrarFPS();
+			    contadorFPS ++;
+				}
+			}
+
+			//========================================================================
+			// FUNCIONES DE DIBUJAR EN CANVAS
+			//------------------------------------------------------------------------
+			function canvasPacMan(x, y, r, pacColor) {
+			    let corr = 2;
+
+			    ctx.beginPath();
+			    ctx.arc(x + r + corr, y + r + corr, r, 0, Math.PI * 2);
+			    ctx.fillStyle = pacColor;
+			    ctx.fill();
+			    ctx.closePath();
+			}
+
+			function canvasPacManRi(x, y, r, pacColor, animaPacMan) {
+			    let corr = 2;
+
+			    if (!animaPacMan) {
+			        for (let i = 0; i < 5; i ++) {
+			            ctx.fillStyle = sueloColor;
+			            ctx.fillRect(x + r + corr + i * 2, y + r + corr + i, parseInt(BSX / 2) - i * 2, 1);
+			            ctx.fillRect(x + r + corr + i * 2, y + r + corr - i, parseInt(BSX / 2) - i * 2, 1);
+			        }
+
+			    } else {
+
+			        for (let i = 0; i < 9; i ++) {
+			            ctx.fillStyle = sueloColor;
+			            ctx.fillRect(x + r + corr + i, y + r + corr + i, parseInt(BSX / 2) - i, 1);
+			            ctx.fillRect(x + r + corr + i, y + r + corr - i, parseInt(BSX / 2) - i, 1);
+			        }
+			    }
+			}
+
+			function canvasPacManLe(x, y, r, pacColor, animaPacMan) {
+			    let corr = 2;
+
+			    if (!animaPacMan) {
+			        for (let i = 0; i < 5; i ++) {
+			            ctx.fillStyle = sueloColor;
+			            ctx.fillRect(x + r + corr - i * 2, y + r + corr + i, -(parseInt(BSX / 2) - i * 2), 1);
+			            ctx.fillRect(x + r + corr - i * 2, y + r + corr - i, -(parseInt(BSX / 2) - i * 2), 1);
+			        }
+
+			    } else {
+
+			        for (let i = 0; i < 9; i ++) {
+			            ctx.fillStyle = sueloColor;
+			            ctx.fillRect(x + r + corr - i, y + r + corr + i, -(parseInt(BSX / 2) - i), 1);
+			            ctx.fillRect(x + r + corr - i, y + r + corr - i, -(parseInt(BSX / 2) - i), 1);
+			        }
+			    }
+			}
+
+			function canvasPacManDo(x, y, r, pacColor) {
+			    let corr = 2;
+
+			    if (!animaPacMan) {
+			        for (let i = 0; i < 5; i ++) {
+			            ctx.fillStyle = sueloColor;
+			            ctx.fillRect(x + r + corr + i, y + r + corr + i * 2, 1, parseInt(BSX / 2) - i * 2);
+			            ctx.fillRect(x + r + corr - i, y + r + corr + i * 2, 1, parseInt(BSX / 2) - i * 2);
+			        }
+
+			    } else {
+
+			        for (let i = 0; i < 9; i ++) {
+			            ctx.fillStyle = sueloColor;
+			            ctx.fillRect(x + r + corr + i, y + r + corr + i, 1, parseInt(BSX / 2) - i);
+			            ctx.fillRect(x + r + corr - i, y + r + corr + i, 1, parseInt(BSX / 2) - i);
+			        }
+			    }
+			    
+			}
+
+			function canvasPacManUp(x, y, r, pacColor) {
+			    let corr = 2;
+
+			    if (!animaPacMan) {
+			        for (let i = 0; i < 5; i ++) {
+			            ctx.fillStyle = sueloColor;
+			            ctx.fillRect(x + r + corr + i, y + r + corr - i * 2, 1, -(parseInt(BSX / 2) - i * 2));
+			            ctx.fillRect(x + r + corr - i, y + r + corr - i * 2, 1, -(parseInt(BSX / 2) - i * 2));
+			        }
+
+			    } else {
+
+			        for (let i = 0; i < 9; i ++) {
+			            ctx.fillStyle = sueloColor;
+			            ctx.fillRect(x + r + corr + i, y + r + corr - i, 1, -(parseInt(BSX / 2) - i));
+			            ctx.fillRect(x + r + corr - i, y + r + corr - i, 1, -(parseInt(BSX / 2) - i));
+			        }
+			    }
+			    
+			}
+
+			//---------------------------------------------------------------------------
+			function canvasFantasma(x, y, r, fantasmaColor, comido) {
+			    let corr = 2;
+			    let v = 9;
+
+			    if (fantasmasAzules) fantasmaColor = 'royalblue';
+
+			    if (!comido) {
+			        ctx.beginPath();
+			        ctx.arc(x + r + corr, y + r + corr, r, Math.PI, 0);
+			        ctx.fillStyle = fantasmaColor;
+			        ctx.fill();
+			        ctx.closePath();
+
+			        ctx.fillStyle = fantasmaColor;
+			        ctx.fillRect(x + corr, y + r + corr, r * 2, parseInt(r));
+			    } 
+
+			    ctx.beginPath();
+			    ctx.arc(x + r + corr - 4, y + v, 3, 0, Math.PI * 2);
+			    ctx.fillStyle = 'white';
+			    ctx.fill();
+			    ctx.closePath();
+
+			    ctx.beginPath();
+			    ctx.arc(x + r + corr + 4, y + v, 3, 0, Math.PI * 2);
+			    ctx.fillStyle = 'white';
+			    ctx.fill();
+			    ctx.closePath();
+			}
+
+			function canvasOjosFantasma(x, y, r, iz, de, vert) {
+			    let corr = 2;
+			    let v = 9 - 1;
+
+			    ctx.fillStyle = 'black';
+			    ctx.fillRect(x + r + corr - iz, y + v + vert, 3, 3);
+
+			    ctx.fillRect(x + r + corr + de, y + v + vert, 3, 3);
+			}
+
+			//---------------------------------------------------------------------
+			function canvasFruta(x, y, r) {
+			    let corr = 2;
+			    let radCerezas = 6;
+
+			    ctx.beginPath();
+			    ctx.moveTo(x + r + corr - 6, y + r + corr + 4);
+			    ctx.lineTo(x + r, y);
+			    ctx.lineTo(x + r + corr + 3, y + r);
+			    ctx.strokeStyle = 'seagreen';
+			    ctx.stroke();
+			    ctx.closePath();
+
+			    ctx.beginPath();
+			    ctx.arc(x + r + corr - 6, y + r + corr + 4, radCerezas, 0, Math.PI * 2);
+			    ctx.fillStyle = 'red';
+			    ctx.fill();
+			    ctx.closePath();
+
+			    ctx.beginPath();
+			    ctx.arc(x + r + corr + 3, y + r + corr + 4, radCerezas, 0, Math.PI * 2);
+			    ctx.fillStyle = 'red';
+			    ctx.fill();
+			    ctx.closePath();
+
+			    ctx.beginPath();
+			    ctx.arc(x + r + corr - 6, y + r + corr + 4, radCerezas + 1, Math.PI * 1.5, Math.PI / 2);
+			    ctx.strokeStyle = sueloColor;
+			    ctx.stroke();
+			    ctx.closePath();
+			}
+
+		</script>
+
+	</body>
+</html>
+
